@@ -104,6 +104,47 @@
                 }
             };
 
+            // ★ 新增：時間格式轉換器
+            const formatTime = (timeString) => {
+                if (!timeString) return "";
+                const str = String(timeString);
+                
+                // 如果後端已經傳來完美的 MM-DD HH:mm，或是只傳來 HH:mm，就直接顯示
+                if (str.length <= 11 && str.includes(':')) return str; 
+
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const time = d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                    return `${month}-${day} ${time}`;
+                }
+                
+                // 應付 Google Sheets 奇怪中文格式的備用方案
+                const parts = str.split(' ');
+                let datePart = "";
+                if (parts.length > 0 && parts[0].includes('/')) {
+                    const dParts = parts[0].split('/');
+                    if (dParts.length >= 3) {
+                        datePart = `${dParts[1].padStart(2, '0')}-${dParts[2].padStart(2, '0')} `;
+                    }
+                }
+                const timePart = parts.pop(); 
+                const timeArray = timePart.split(':');
+                if (timeArray.length >= 2) {
+                    let rawHour = timeArray[0].replace(/[^0-9]/g, '');
+                    let min = timeArray[1];
+                    if (timePart.includes('下午') && parseInt(rawHour) < 12) {
+                        rawHour = String(parseInt(rawHour) + 12);
+                    }
+                    if (timePart.includes('上午') && parseInt(rawHour) === 12) {
+                        rawHour = '00';
+                    }
+                    return `${datePart}${rawHour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+                }
+                return str; 
+            };
+
             return (
                 <div className="max-w-xl mx-auto space-y-6">
                     <div className="text-center py-6">
@@ -157,8 +198,8 @@
                                     <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-700">{req.name}</span>
-                                            {/* ★ 這裡直接顯示後端傳回來的 time 即可 */}
-                                            <span className="text-[10px] text-slate-400 font-mono">{req.time}</span>
+                                            {/* ★ 套用轉換器 */}
+                                            <span className="text-[10px] text-slate-400 font-mono">{formatTime(req.time)}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-slate-600">{req.flower}</span>

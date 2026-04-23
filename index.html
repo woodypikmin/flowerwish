@@ -104,50 +104,6 @@
                 }
             };
 
-            // ★ 全新：萬能時間解析器
-            const formatTime = (timeString) => {
-                if (!timeString) return "";
-                const str = String(timeString).trim();
-                
-                // 嘗試解析像 "2026/4/23 下午 5:09:45" 這種複雜格式
-                // 找出：年份/月份/日期 (可選的上午/下午) 小時:分鐘
-                const regex = /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s*(上午|下午|AM|PM)?\s*(\d{1,2}):(\d{1,2})/;
-                const match = str.match(regex);
-                
-                if (match) {
-                    const month = match[2].padStart(2, '0');
-                    const day = match[3].padStart(2, '0');
-                    const ampm = match[4];
-                    let hour = parseInt(match[5], 10);
-                    const minute = match[6].padStart(2, '0');
-                    
-                    // 轉換成 24 小時制
-                    if ((ampm === '下午' || ampm === 'PM') && hour < 12) {
-                        hour += 12;
-                    } else if ((ampm === '上午' || ampm === 'AM') && hour === 12) {
-                        hour = 0;
-                    }
-                    
-                    const hourStr = String(hour).padStart(2, '0');
-                    return `${month}-${day} ${hourStr}:${minute}`;
-                }
-                
-                // 如果已經是 "04-23 17:09" 這種漂亮格式就直接回傳
-                if (/^\d{2}-\d{2}\s\d{2}:\d{2}$/.test(str)) return str;
-
-                // 最後的備用方案，丟給瀏覽器原生的 Date 去猜
-                const d = new Date(str);
-                if (!isNaN(d.getTime())) {
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const t = d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-                    return `${m}-${day} ${t}`;
-                }
-
-                // 如果真的都看不懂，就顯示原文
-                return str; 
-            };
-
             return (
                 <div className="max-w-xl mx-auto space-y-6">
                     <div className="text-center py-6">
@@ -201,8 +157,8 @@
                                     <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-700">{req.name}</span>
-                                            {/* ★ 無論後端給什麼，這裡都會變成 04-23 17:09 */}
-                                            <span className="text-[10px] text-slate-400 font-mono">{formatTime(req.time)}</span>
+                                            {/* ★ 直接印出後端傳來的乾淨字串 */}
+                                            <span className="text-[10px] text-slate-400 font-mono">{req.time}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-slate-600">{req.flower}</span>

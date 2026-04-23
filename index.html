@@ -18,14 +18,12 @@
         // ★ 記得替換成你的 Google Apps Script 部署網址
         const API_URL = "https://script.google.com/macros/s/AKfycbyQNQT0SKOnygi_UJyDu5zzlKsGR4qD_XcSiaS0lDsrq-4UMCrNJ86EM1HcjMZV0WFD/exec"; 
 
-        // 取得台灣時間的今天日期 (格式：YYYY-MM-DD)
         const getLocalISODate = () => {
             const d = new Date();
             d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
             return d.toISOString().slice(0, 10);
         };
 
-        // 花朵與顏色對應字典
         const FLOWER_DATA = {
             "銀蓮花": ["白", "黃", "紅", "藍"], "九重葛": ["白", "黃", "紅", "藍"], "海芋": ["白", "黃", "紅", "藍"],
             "山茶花": ["白", "黃", "紅", "藍"], "油菜花": ["白", "黃", "藍"], "康乃馨": ["白", "黃", "紅", "藍"],
@@ -54,7 +52,6 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [isLoading, setIsLoading] = useState(true);
 
-            // 抓取今日清單
             const fetchRequests = async () => {
                 setIsLoading(true);
                 try {
@@ -63,7 +60,7 @@
                         body: JSON.stringify({ action: 'get' })
                     });
                     const data = await res.json();
-                    setRequests(data.reverse()); // 新的排在最上面
+                    setRequests(data.reverse()); 
                 } catch (error) {
                     console.error("讀取失敗", error);
                 } finally {
@@ -75,26 +72,39 @@
                 fetchRequests();
             }, []);
 
-            // 處理選擇花朵時，清空顏色欄位
             const handleFlowerChange = (e) => {
                 setFlower(e.target.value);
-                setColor(""); // 重置顏色，強迫重新選擇
+                setColor(""); 
             };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
+                
+                // ★ 前端先檢查一次是否重複
+                const isDuplicate = requests.some(req => req.name === name.trim());
+                if (isDuplicate) {
+                    alert("你今天已經許過願囉！一天只能許願一次喔！");
+                    return;
+                }
+
                 setIsSubmitting(true);
 
                 try {
-                    await fetch(API_URL, {
+                    const res = await fetch(API_URL, {
                         method: 'POST',
                         body: JSON.stringify({ action: 'add', name, flower, color })
                     });
-                    // 送出後清空表單並重新抓取資料
-                    setName("");
-                    setFlower("");
-                    setColor("");
-                    await fetchRequests();
+                    const result = await res.json();
+                    
+                    // 接收後端回傳的結果，防護網頁同時開啟送出的漏洞
+                    if (result.status === "error") {
+                        alert(result.message);
+                    } else {
+                        setName("");
+                        setFlower("");
+                        setColor("");
+                        await fetchRequests();
+                    }
                 } catch (error) {
                     alert("送出失敗，請稍後再試！");
                 } finally {
@@ -114,7 +124,7 @@
                 }
             };
 
-            const todayDate = getLocalISODate(); // 取得今天的日期
+            const todayDate = getLocalISODate(); 
 
             return (
                 <div className="max-w-xl mx-auto space-y-6">
@@ -127,7 +137,10 @@
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-100">
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-1">你是誰？</label>
+                                <div className="flex justify-between items-end mb-1">
+                                    <label className="block text-sm font-bold text-slate-600">你是誰？</label>
+                                    <span className="text-[10px] text-pink-500 font-bold bg-pink-50 px-2 py-0.5 rounded">⚠️ 一人一天限許一次</span>
+                                </div>
                                 <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" />
                             </div>
                             

@@ -15,8 +15,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ★ 記得替換成你的 Google Apps Script 部署網址
-        const API_URL = "https://script.google.com/macros/s/AKfycbyQNQT0SKOnygi_UJyDu5zzlKsGR4qD_XcSiaS0lDsrq-4UMCrNJ86EM1HcjMZV0WFD/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbwkbYJDOwtfZWr3WHLKWfNG--S5qGLaDxQW6v156CqDUFOHDobVJ1KgnLbw40wBSOh-/exec"; 
 
         const getLocalISODate = () => {
             const d = new Date();
@@ -47,7 +46,6 @@
             const [name, setName] = useState("");
             const [flower, setFlower] = useState("");
             const [color, setColor] = useState("");
-            
             const [requests, setRequests] = useState([]);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [isLoading, setIsLoading] = useState(true);
@@ -68,49 +66,33 @@
                 }
             };
 
-            useEffect(() => {
-                fetchRequests();
-            }, []);
-
-            const handleFlowerChange = (e) => {
-                setFlower(e.target.value);
-                setColor(""); 
-            };
+            useEffect(() => { fetchRequests(); }, []);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                
-                const isDuplicate = requests.some(req => req.name === name.trim());
-                if (isDuplicate) {
-                    alert("你今天已經許過願囉！一天只能許願一次喔！");
+                if (requests.some(req => req.name === name.trim())) {
+                    alert("你今天已經許過願囉！");
                     return;
                 }
-
                 setIsSubmitting(true);
-
                 try {
                     const res = await fetch(API_URL, {
                         method: 'POST',
                         body: JSON.stringify({ action: 'add', name, flower, color })
                     });
                     const result = await res.json();
-                    
                     if (result.status === "error") {
                         alert(result.message);
                     } else {
-                        setName("");
-                        setFlower("");
-                        setColor("");
+                        setName(""); setFlower(""); setColor("");
                         await fetchRequests();
                     }
                 } catch (error) {
-                    alert("送出失敗，請稍後再試！");
+                    alert("送出失敗！");
                 } finally {
                     setIsSubmitting(false);
                 }
             };
-
-            const availableColors = flower ? FLOWER_DATA[flower] : [];
 
             const getColorStyle = (c) => {
                 switch(c) {
@@ -122,99 +104,61 @@
                 }
             };
 
-            // ★ 強大的時間格式轉換器
-            const formatTime = (timeString) => {
-                if (!timeString) return "";
-                const d = new Date(timeString);
-                
-                // 如果瀏覽器可以正常解析
-                if (!isNaN(d.getTime())) {
-                    return d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-                }
-                
-                // 如果出現 Invalid Date，手動從文字中切出時間
-                const str = String(timeString);
-                const timePart = str.split(' ').pop(); // 取出最後面的一段 (例：下午5:02:28)
-                const timeArray = timePart.split(':');
-                if (timeArray.length >= 2) {
-                    // 去掉「上午/下午」，並只保留「時:分」
-                    let rawHour = timeArray[0].replace(/[^0-9]/g, '');
-                    let min = timeArray[1];
-                    // 如果有包含「下午」且不是12點，自動加 12 小時 (轉24小時制)
-                    if (timePart.includes('下午') && parseInt(rawHour) < 12) {
-                        rawHour = String(parseInt(rawHour) + 12);
-                    }
-                    // 如果有包含「上午」且是12點，轉為 00
-                    if (timePart.includes('上午') && parseInt(rawHour) === 12) {
-                        rawHour = '00';
-                    }
-                    return `${rawHour.padStart(2, '0')}:${min.padStart(2, '0')}`;
-                }
-                return timePart; // 如果還是切不出來，就原樣顯示
-            };
-
-            const todayDate = getLocalISODate(); 
-
             return (
                 <div className="max-w-xl mx-auto space-y-6">
                     <div className="text-center py-6">
-                        <h1 className="text-3xl font-black text-pink-600 mb-2">🌸 {todayDate} 麥田許願池</h1>
+                        <h1 className="text-3xl font-black text-pink-600 mb-2">🌸 {getLocalISODate()} 麥田許願池</h1>
                         <p className="text-sm text-pink-500/80 font-bold">資料將於每日00:00重置</p>
                     </div>
 
-                    {/* 許願表單 */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-100">
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <div className="flex justify-between items-end mb-1">
-                                    <label className="block text-sm font-bold text-slate-600">你是誰？</label>
-                                    <span className="text-[10px] text-pink-500 font-bold bg-pink-50 px-2 py-0.5 rounded">⚠️ 一人一天限許一次</span>
+                                <div className="flex justify-between mb-1">
+                                    <label className="text-sm font-bold text-slate-600">你是誰？</label>
+                                    <span className="text-[10px] text-pink-500 font-bold">⚠️ 一人一天限一次</span>
                                 </div>
-                                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400" />
+                                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-400 outline-none" />
                             </div>
-                            
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-600 mb-1">缺什麼花？</label>
-                                    <select required value={flower} onChange={handleFlowerChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400">
-                                        <option value="" disabled>請選擇花朵</option>
+                                    <select required value={flower} onChange={e => { setFlower(e.target.value); setColor(""); }} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        <option value="" disabled>請選擇</option>
                                         {Object.keys(FLOWER_DATA).map(f => <option key={f} value={f}>{f}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-600 mb-1">缺什麼顏色？</label>
-                                    <select required value={color} onChange={e => setColor(e.target.value)} disabled={!flower} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 disabled:opacity-50">
-                                        <option value="" disabled>{flower ? "請選擇顏色" : "請先選擇花朵"}</option>
-                                        {availableColors.map(c => <option key={c} value={c}>{c}色</option>)}
+                                    <label className="block text-sm font-bold text-slate-600 mb-1">顏色？</label>
+                                    <select required value={color} onChange={e => setColor(e.target.value)} disabled={!flower} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none disabled:opacity-50">
+                                        <option value="" disabled>請選擇</option>
+                                        {(flower ? FLOWER_DATA[flower] : []).map(c => <option key={c} value={c}>{c}色</option>)}
                                     </select>
                                 </div>
                             </div>
-
-                            <button type="submit" disabled={isSubmitting} className="w-full py-3.5 mt-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50">
-                                {isSubmitting ? '丟入許願池中...' : '✨ 丟入許願池'}
+                            <button type="submit" disabled={isSubmitting} className="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black rounded-xl shadow-md active:scale-95 disabled:opacity-50">
+                                {isSubmitting ? '正在寫願望...' : '✨ 丟入許願池'}
                             </button>
                         </form>
                     </div>
 
-                    {/* 許願清單 */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-100">
-                        <h2 className="text-lg font-black text-slate-700 mb-4 flex items-center justify-between">
+                        <h2 className="text-lg font-black text-slate-700 mb-4 flex justify-between">
                             <span>📋 大家許什麼?</span>
                             <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-lg">共 {requests.length} 筆</span>
                         </h2>
-                        
                         {isLoading ? (
                             <div className="text-center text-slate-400 py-8 animate-pulse">讀取中...</div>
                         ) : requests.length === 0 ? (
-                            <div className="text-center text-slate-400 py-8">今天還沒有人許願，可以放假了好欸</div>
+                            <div className="text-center text-slate-400 py-8 italic">今天還沒有人許願，可以放假了好欸</div>
                         ) : (
                             <div className="space-y-3">
                                 {requests.map((req, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-pink-200 transition-colors">
+                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-700">{req.name}</span>
-                                            {/* ★ 套用新的防呆時間轉換器 */}
-                                            <span className="text-[10px] text-slate-400 font-mono">{formatTime(req.time)}</span>
+                                            {/* ★ 這裡直接顯示後端傳回來的 time 即可 */}
+                                            <span className="text-[10px] text-slate-400 font-mono">{req.time}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-slate-600">{req.flower}</span>

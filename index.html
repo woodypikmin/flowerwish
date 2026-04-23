@@ -80,7 +80,6 @@
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 
-                // ★ 前端先檢查一次是否重複
                 const isDuplicate = requests.some(req => req.name === name.trim());
                 if (isDuplicate) {
                     alert("你今天已經許過願囉！一天只能許願一次喔！");
@@ -96,7 +95,6 @@
                     });
                     const result = await res.json();
                     
-                    // 接收後端回傳的結果，防護網頁同時開啟送出的漏洞
                     if (result.status === "error") {
                         alert(result.message);
                     } else {
@@ -122,6 +120,37 @@
                     case '藍': return 'bg-blue-100 text-blue-700 border-blue-200';
                     default: return 'bg-gray-100 text-gray-700';
                 }
+            };
+
+            // ★ 強大的時間格式轉換器
+            const formatTime = (timeString) => {
+                if (!timeString) return "";
+                const d = new Date(timeString);
+                
+                // 如果瀏覽器可以正常解析
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                
+                // 如果出現 Invalid Date，手動從文字中切出時間
+                const str = String(timeString);
+                const timePart = str.split(' ').pop(); // 取出最後面的一段 (例：下午5:02:28)
+                const timeArray = timePart.split(':');
+                if (timeArray.length >= 2) {
+                    // 去掉「上午/下午」，並只保留「時:分」
+                    let rawHour = timeArray[0].replace(/[^0-9]/g, '');
+                    let min = timeArray[1];
+                    // 如果有包含「下午」且不是12點，自動加 12 小時 (轉24小時制)
+                    if (timePart.includes('下午') && parseInt(rawHour) < 12) {
+                        rawHour = String(parseInt(rawHour) + 12);
+                    }
+                    // 如果有包含「上午」且是12點，轉為 00
+                    if (timePart.includes('上午') && parseInt(rawHour) === 12) {
+                        rawHour = '00';
+                    }
+                    return `${rawHour.padStart(2, '0')}:${min.padStart(2, '0')}`;
+                }
+                return timePart; // 如果還是切不出來，就原樣顯示
             };
 
             const todayDate = getLocalISODate(); 
@@ -184,7 +213,8 @@
                                     <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-pink-200 transition-colors">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-slate-700">{req.name}</span>
-                                            <span className="text-[10px] text-slate-400">{new Date(req.time).toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit'})}</span>
+                                            {/* ★ 套用新的防呆時間轉換器 */}
+                                            <span className="text-[10px] text-slate-400 font-mono">{formatTime(req.time)}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-black text-slate-600">{req.flower}</span>
